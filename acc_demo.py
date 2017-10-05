@@ -4,18 +4,33 @@ Created on Wed Oct 04 15:35:10 2017
 
 @author: salah.hessien
 """
-import serial
+#import serial
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 from math import sin, cos, pi
+from dweepy.streaming import listen_for_dweets_from
 
-matplotlib.pyplot.close("all")
+#matplotlib.pyplot.close("all")
+
+import warnings
+import matplotlib.cbook
+warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
+
 
 INTERVAL = 256
 
 #ser.close()
+
+class DweetReader():
+    def next(self):
+        for d in listen_for_dweets_from("RRRioXYZ", 1000000):
+            print d
+            yield (d['content']['x'], d['content']['y'], d['content']['z'])
+
+dreader = DweetReader()
+gen = next(dreader)
 
 def column(matrix, i):
     return [row[i] for row in matrix]
@@ -48,25 +63,30 @@ def animate3D(i):
     XRot_Y,YRot_Y,ZRot_Y = np.transpose(np.dot(t, Rx), (2,0,1))
                    
     # Plot the surface.
-    ax.plot_surface(XRot_Y, YRot_Y, ZRot_Y, cmap=cm.coolwarm,
+    ax.plot_surface(XRot_Y, YRot_Y, ZRot_Y, cmap=plt.get_cmap('coolwarm'),
                        linewidth=0, antialiased=False)
 
 def animate(i):
     global sensor_dbuf
     global cur_sample
     # sensor data buffer
-    newval = ser.readline()
-    x = float(newval.split()[0])
-    y = float(newval.split()[1])
-    z = float(newval.split()[2])
-    
-    
-    cur_sample = [x,y,z]
+#    newval = ser.readline()
+#    x = float(newval.split()[0])
+#    y = float(newval.split()[1])
+#    z = float(newval.split()[2])
+    #[x, y, z] = read_samples()
+    x, y, z = next(gen)
+#    print new_val
+#    x, y, z = new_val
+
+#    cur_sample = [x,y,z]
+    # scale the 90 degree, normalize
+    cur_sample = [x / 90., y / 90., z / 90.]
     
     #print ( "x = " , x , "y = " , y , "z = " , z)
     
     #update sensor buffer
-    sensor_dbuf[0] = [x,y,z]
+    sensor_dbuf[0] = cur_sample
     sensor_dbuf = np.roll(sensor_dbuf,-1,axis=0) # circular shift
     
     xplot.clear()
@@ -105,13 +125,14 @@ X, Y = np.meshgrid(X, Y)
 Z = X*0
 
 
-ser=serial.Serial(port='\\.\COM4', 
-                  baudrate=9600, 
-                  bytesize=serial.EIGHTBITS, 
-                  parity=serial.PARITY_NONE, 
-                  stopbits=serial.STOPBITS_ONE, 
-                  timeout=1
-                  )
+#ser=serial.Serial(port='\\.\COM4', 
+#                  baudrate=9600, 
+#                  bytesize=serial.EIGHTBITS, 
+#                  parity=serial.PARITY_NONE, 
+#                  stopbits=serial.STOPBITS_ONE, 
+#                  timeout=1
+#                  )
+
 
 
 ani = []
